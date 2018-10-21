@@ -25,7 +25,9 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func BuilderHandler(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, dockerutils.BuildContainer("vertx-start-project-1.0-SNAPSHOT-fat.jar"))
+	dockerClient := &dockerutils.DockerClientBuilder{}
+	result := dockerClient.InitClient().BuildImage("vertx-start-project-1.0-SNAPSHOT-fat.jar").Build()
+	io.WriteString(w, result.ImageName)
 }
 
 func UploaderRoute() *chi.Mux  {
