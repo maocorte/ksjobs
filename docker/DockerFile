@@ -1,0 +1,11 @@
+FROM anapsix/alpine-java
+
+MAINTAINER francescofrontera
+
+ARG JAR_TO_EXECUTE
+
+ENV JAR_TO_EXECUTE ${JAR_TO_EXECUTE}
+
+COPY docker/jars/${JAR_TO_EXECUTE} /${JAR_TO_EXECUTE}
+
+CMD ["sh", "-c", "java -jar /${JAR_TO_EXECUTE}"]
