@@ -9,6 +9,8 @@ import (
 	"os"
 )
 
+var dockerClient = dockerutils.InitClient()
+
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	file, handler, err := r.FormFile("uploadFile")
 	if err != nil {
@@ -25,14 +27,20 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func BuilderHandler(w http.ResponseWriter, r *http.Request) {
-	dockerClient := &dockerutils.DockerClientBuilder{}
-	result := dockerClient.InitClient().BuildImage("vertx-start-project-1.0-SNAPSHOT-fat.jar").Build()
-	io.WriteString(w, result.ImageName)
+	// Extract json for request {time: Long, jarName: String}
+	result := dockerClient.BuildImage("vertx-start-project-1.0-SNAPSHOT-fat.jar")
+	io.WriteString(w, result)
+}
+
+func RunHandler(w http.ResponseWriter, r *http.Request) {
+	containerId := dockerClient.RunContainer("internal_image/vertx-start-project-1.0-snapshot-fat")
+	io.WriteString(w, containerId)
 }
 
 func UploaderRoute() *chi.Mux  {
 	uploadRoute := chi.NewRouter()
 	uploadRoute.Post("/upload", UploadHandler)
 	uploadRoute.Post("/build", BuilderHandler)
+	uploadRoute.Post("/run", RunHandler)
 	return uploadRoute
 }

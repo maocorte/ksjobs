@@ -3,6 +3,7 @@ package dockerutils
 import (
 	"context"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/francescofrontera/ks-job-upload/utils"
 	"io"
@@ -10,32 +11,37 @@ import (
 	"os"
 )
 
+/* Docker Client Initialization */
 type DockerClientResult struct {
 	dockerClient *client.Client
 	ctx context.Context
-	ImageName string
-	ContainerName string
 }
 
-type DockerClientBuilder struct {
-	DockerClientResult
-}
-
-func (dcb *DockerClientBuilder) InitClient() *DockerClientBuilder {
+func InitClient() *DockerClientResult {
 	cli, error := client.NewClientWithOpts(client.WithVersion("1.38")); if error != nil {
-		log.Panicf("Error during docker client initialization..", error)
+		log.Fatal(error)
 	}
 	ctx := context.Background()
 
-	dcb.dockerClient = cli
-	dcb.ctx = ctx
-
-	return dcb
+	return &DockerClientResult{
+		dockerClient: cli,
+		ctx: ctx,
+	}
 }
 
-func (dcb *DockerClientBuilder) BuildImage(fileName string) *DockerClientBuilder {
-	dockerBuildContext, _ := os.Open(utils.GetDockerFilePath())
+/* DockerClient utils */
+func getDockerFileCtx() (*os.File, error) {
+	ctx, error := os.Open(utils.GetDockerFilePath())
+	return ctx, error
+}
+
+/* Docker Client Result methods */
+func (dcb *DockerClientResult) BuildImage(fileName string) string {
+	dockerBuildContext, _ := getDockerFileCtx()
 	defer dockerBuildContext.Close()
+
+	cli := dcb.dockerClient
+	ctx := dcb.ctx
 
 	imageName := utils.NormalizeJarName(fileName)
 
@@ -47,19 +53,33 @@ func (dcb *DockerClientBuilder) BuildImage(fileName string) *DockerClientBuilder
 		},
 	}
 
-	response, err := dcb.dockerClient.ImageBuild(dcb.ctx, dockerBuildContext, buildOptions); if err != nil {
+	response, err := cli.ImageBuild(ctx, dockerBuildContext, buildOptions); if err != nil {
 		log.Fatal(err)
 	}
-
 	io.Copy(os.Stdout, response.Body)
 
+
 	defer response.Body.Close()
-
-	dcb.ImageName = imageName
-
-	return dcb
+	return imageName
 }
 
-func (dcb *DockerClientBuilder) Build() DockerClientResult {
-	return dcb.DockerClientResult
+func (dcb *DockerClientResult) RunContainer(imageName string) string {
+	cli := dcb.dockerClient
+	ctx := dcb.ctx
+
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image: imageName,
+		Tty:   true,
+	}, nil, nil, ""); if err != nil {
+		panic(err)
+	}
+
+	containerId := resp.ID
+
+	if err := cli.ContainerStart(ctx, containerId, types.ContainerStartOptions{}); err != nil {
+		panic(err)
+	}
+
+	return containerId
 }
+
