@@ -2,6 +2,7 @@ package dockerutils
 
 import (
 	"context"
+	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -65,6 +66,10 @@ func (dcb *DockerClientResult) RunContainer(jarToMount, mainClass string) (strin
 	containerConfig := &container.Config{
 		Image: "base_image_jar",
 		Tty:   true,
+		Env: []string{
+			fmt.Sprintf("JAR_TO_EXECUTE=%s", jarToMount),
+			fmt.Sprintf("MAIN_CLASS=%s", mainClass),
+		},
 	}
 
 	sourcePath, targetPath := utils.GetPathToJar(jarToMount)
