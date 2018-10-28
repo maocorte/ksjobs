@@ -4,11 +4,13 @@ import (
 	"context"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
-	"github.com/francescofrontera/ks-job-upload/utils"
+	"github.com/francescofrontera/ks-job-uploader/utils"
 	"io"
 	"log"
 	"os"
+	"strings"
 )
 
 /* Docker Client Initialization */
@@ -47,7 +49,7 @@ func (dcb *DockerClientResult) BuildImage(fileName string) string {
 
 	buildOptions := types.ImageBuildOptions{
 		Tags: []string{imageName},
-		Dockerfile: "docker/DockerFile",
+		Dockerfile: "docker/Dockerfile",
 		BuildArgs: map[string]*string{
 			"JAR_TO_EXECUTE": &fileName,
 		},
@@ -63,14 +65,39 @@ func (dcb *DockerClientResult) BuildImage(fileName string) string {
 	return imageName
 }
 
-func (dcb *DockerClientResult) RunContainer(imageName string) string {
+//FIXME: move this on utils packages
+func getPathToJar(jarName string) (string, string) {
+	workDirPath, err := os.Getwd(); if err != nil {
+		log.Panic(err)
+	}
+	sourcePath := strings.Join([]string{workDirPath, "jars", jarName}, "/")
+	targetPath := strings.Join([]string{"/jar", jarName}, "/")
+
+	return sourcePath, targetPath
+}
+
+func (dcb *DockerClientResult) RunContainer(jarToMount string) string {
 	cli := dcb.dockerClient
 	ctx := dcb.ctx
 
-	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: imageName,
+	containerConfig := &container.Config{
+		Image: "base_image_jar",
 		Tty:   true,
-	}, nil, nil, ""); if err != nil {
+		Env:
+	}
+
+	sourcePath, targetPath := getPathToJar(jarToMount)
+	hostConfig := &container.HostConfig{
+		Mounts: []mount.Mount{
+			{
+				Type: mount.TypeBind,
+				Source: sourcePath,
+				Target: targetPath,
+			},
+		},
+	}
+
+	resp, err := cli.ContainerCreate(ctx, containerConfig, hostConfig, nil, ""); if err != nil {
 		panic(err)
 	}
 

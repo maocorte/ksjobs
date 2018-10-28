@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/francescofrontera/ks-job-upload/api"
+	"github.com/francescofrontera/ks-job-uploader/api"
 	"net/http"
 
 	"github.com/go-chi/chi"

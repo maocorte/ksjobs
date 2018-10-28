@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/francescofrontera/ks-job-upload/dockerutils"
+	"github.com/francescofrontera/ks-job-uploader/dockerutils"
 	"github.com/go-chi/chi"
 	"io"
 	"log"
@@ -18,7 +18,7 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	f, err := os.OpenFile("/Users/francescofrontera/go/src/github.com/francescofrontera/ks-job-upload/docker/jars/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile("/Users/francescofrontera/go/src/github.com/francescofrontera/ks-job-upload/jars/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -26,21 +26,21 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	io.Copy(f, file)
 }
 
-func BuilderHandler(w http.ResponseWriter, r *http.Request) {
+/*func BuilderHandler(w http.ResponseWriter, r *http.Request) {
 	// Extract json for request {time: Long, jarName: String}
 	result := dockerClient.BuildImage("vertx-start-project-1.0-SNAPSHOT-fat.jar")
 	io.WriteString(w, result)
-}
+}*/
 
 func RunHandler(w http.ResponseWriter, r *http.Request) {
-	containerId := dockerClient.RunContainer("internal_image/vertx-start-project-1.0-snapshot-fat")
+	containerId := dockerClient.RunContainer("vertx-start-project-1.0-snapshot-fat.jar")
 	io.WriteString(w, containerId)
 }
 
 func UploaderRoute() *chi.Mux  {
 	uploadRoute := chi.NewRouter()
 	uploadRoute.Post("/upload", UploadHandler)
-	uploadRoute.Post("/build", BuilderHandler)
+	// uploadRoute.Post("/build", BuilderHandler)
 	uploadRoute.Post("/run", RunHandler)
 	return uploadRoute
 }
