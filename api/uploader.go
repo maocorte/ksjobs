@@ -1,46 +1,52 @@
 package api
 
 import (
+	"fmt"
 	"github.com/francescofrontera/ks-job-uploader/dockerutils"
-	"github.com/go-chi/chi"
-	"io"
-	"log"
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
+	"strings"
 )
 
-var dockerClient = dockerutils.InitClient()
+type (
+	RunJar struct {
+		JarName string `json:jarName`
+		MainClass string `json:mainClass`
+	}
+)
 
-func UploadHandler(w http.ResponseWriter, r *http.Request) {
-	file, handler, err := r.FormFile("uploadFile")
+func UploadHandler(c *gin.Context){
+	file, err := c.FormFile("uploadFile")
 	if err != nil {
 		panic(err) //dont do this
 	}
-	defer file.Close()
 
-	f, err := os.OpenFile("/Users/francescofrontera/go/src/github.com/francescofrontera/ks-job-upload/jars/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		log.Fatal(err)
+	workdir, err := os.Getwd(); if err != nil {
+		panic(err)
 	}
-	defer f.Close()
-	io.Copy(f, file)
+
+	dst := strings.Join([]string{workdir, "jars", file.Filename}, "/")
+	if err := c.SaveUploadedFile(file, dst); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("upload file error %s", err.Error())})
+		return
+	}
+
+	c.JSON(http.StatusAccepted, gin.H{"fileName": file.Filename, "status": http.StatusAccepted})
 }
 
-/*func BuilderHandler(w http.ResponseWriter, r *http.Request) {
-	// Extract json for request {time: Long, jarName: String}
-	result := dockerClient.BuildImage("vertx-start-project-1.0-SNAPSHOT-fat.jar")
-	io.WriteString(w, result)
-}*/
+func RunKSJob(c *gin.Context){
+	initDockerClient := dockerutils.InitClient()
 
-func RunHandler(w http.ResponseWriter, r *http.Request) {
-	containerId := dockerClient.RunContainer("vertx-start-project-1.0-snapshot-fat.jar")
-	io.WriteString(w, containerId)
-}
+	runJar := &RunJar{}
+	if error := c.BindJSON(runJar); error == nil {
+		containerId, dockerClientError := initDockerClient.RunContainer(runJar.JarName, runJar.MainClass); if dockerClientError != nil {
+			responseStatus := http.StatusInternalServerError
+			c.JSON(responseStatus, gin.H{"error": dockerClientError.Error(), "status": responseStatus})
+			return
+		}
 
-func UploaderRoute() *chi.Mux  {
-	uploadRoute := chi.NewRouter()
-	uploadRoute.Post("/upload", UploadHandler)
-	// uploadRoute.Post("/build", BuilderHandler)
-	uploadRoute.Post("/run", RunHandler)
-	return uploadRoute
+		responseStatus := http.StatusAccepted
+		c.JSON(responseStatus, gin.H{"containerId": containerId, "status": responseStatus})
+	}
 }

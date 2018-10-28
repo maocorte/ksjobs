@@ -2,19 +2,17 @@ package main
 
 import (
 	"github.com/francescofrontera/ks-job-uploader/api"
-	"net/http"
-
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	route := chi.NewRouter()
-	route.Use(middleware.Logger)
+	route := gin.Default()
 
-	route.Route("/v1", func(r chi.Router) {
-		r.Mount("/api", api.UploaderRoute())
-	})
+	v1 := route.Group("/v1/api")
+	{
+		v1.POST("/upload", api.UploadHandler)
+		v1.POST("/run", api.RunKSJob)
+	}
 
-	http.ListenAndServe(":3000", route)
+	route.Run(":8080")
 }
