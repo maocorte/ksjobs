@@ -29,36 +29,6 @@ func InitClient() *DockerClientResult {
 	}
 }
 
-/* Docker Client Result methods */
-/*func (dcb *DockerClientResult) BuildImage(fileName string) string {
-	dockerBuildContext, _ := getDockerFileCtx()
-	defer dockerBuildContext.Close()
-
-	cli := dcb.dockerClient
-	ctx := dcb.ctx
-
-	imageName := utils.NormalizeJarName(fileName)
-
-	buildOptions := types.ImageBuildOptions{
-		Tags: []string{imageName},
-		Dockerfile: "docker/Dockerfile",
-		BuildArgs: map[string]*string{
-			"JAR_TO_EXECUTE": &fileName,
-		},
-	}
-
-	response, err := cli.ImageBuild(ctx, dockerBuildContext, buildOptions); if err != nil {
-		log.Fatal(err)
-	}
-	io.Copy(os.Stdout, response.Body)
-
-
-	defer response.Body.Close()
-	return imageName
-}*/
-
-
-
 func (dcb *DockerClientResult) RunContainer(jarToMount, mainClass string) (string, error) {
 	cli := dcb.dockerClient
 	ctx := dcb.ctx

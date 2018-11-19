@@ -19,7 +19,7 @@ type (
 func UploadHandler(c *gin.Context){
 	file, err := c.FormFile("uploadFile")
 	if err != nil {
-		panic(err) //dont do this
+		panic(err)
 	}
 
 	workdir, err := os.Getwd(); if err != nil {
