@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/francescofrontera/ks-job-uploader/api"
+	"github.com/francescofrontera/ksjobs/api"
 	"github.com/gin-gonic/gin"
 )
 

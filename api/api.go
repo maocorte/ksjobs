@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"github.com/francescofrontera/ks-job-uploader/dockerutils"
+	"github.com/francescofrontera/ksjobs/dockerutils"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"os"
